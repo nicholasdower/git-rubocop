@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+
+def fail(message)
+  warn(message)
+  exit 1
+end
+
+diff_args = []
+rubocop_args = []
+
+if index = ARGV.index('--')
+  diff_args = ARGV.shift(index)
+  ARGV.shift
+  rubocop_args = ARGV
+else
+  diff_args = ARGV
+end
+
+if diff_args.index('--help') || diff_args.index('-h')
+  puts <<~EOF
+    Runs the rubocop command on the files included in git diff.
+
+    Usage: git rubocop [git-diff-args...] -- [rubocop-args...]
+
+    To install, add this script to your PATH, then run one of the following:
+
+        git config --global alias.rubocop '!git-rubocop' # All repos
+        git config alias.rubocop '!git-rubocop'          # Current repo only
+
+    Examples:
+     • Run on unstaged files:                git rubocop
+     • Run on staged files:                  git rubocop --staged
+     • Run on all changed files:             git rubocop head
+     • Autocorrect all changed files:        git rubocop head -- -A
+     • Run on files changed between commits: git rubocop head~2 head~1
+     • Run on files differing from master:   git rubocop origin/master
+
+    Options:
+        -h       Print this message (Don't use --help)
+  EOF
+  exit
+end
+
+diff_command = "git diff --name-only #{diff_args.join(' ')}"
+puts "running: #{diff_command}"
+files = `#{diff_command} 2> /dev/null`.split("\n")
+
+fail('fatal: git command failed') unless $?.success?
+
+fail('fatal: git command returned 0 files') if files.empty?
+
+rubocop_command = "bundle exec rubocop --force-exclusion #{(rubocop_args + files).join(' ')}"
+puts "running: #{rubocop_command}"
+system(rubocop_command)
+exit $?.exitstatus
