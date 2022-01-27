@@ -47,9 +47,22 @@ files = `#{diff_command} 2> /dev/null`.split("\n")
 
 fail('fatal: git command failed') unless $?.success?
 
-fail('fatal: git command returned 0 files') if files.empty?
+existing_files = files.select { |f| File.exists?(f) }
+if files.empty?
+  puts 'Git returned zero files. Aborting.'
+  exit
+end
+if existing_files.empty?
+  puts 'Git returned zero files which exist. Aborting.'
+  exit
+end
 
-rubocop_command = "bundle exec rubocop --force-exclusion #{(rubocop_args + files).join(' ')}"
+if existing_files.size < files.size
+  puts('ignoring files which do not exist:')
+  (files - existing_files).each { |f| puts "  #{f}" }
+end
+
+rubocop_command = "bundle exec rubocop --force-exclusion #{(rubocop_args + existing_files).join(' ')}"
 puts "running: #{rubocop_command}"
 system(rubocop_command)
 exit $?.exitstatus
