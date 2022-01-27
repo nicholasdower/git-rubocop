@@ -17,7 +17,7 @@ else
 end
 
 if diff_args.index('--help') || diff_args.index('-h')
-  puts <<~EOF
+  puts <<~DOC
     Runs the rubocop command on the files included in git diff.
 
     Usage: git rubocop [git-diff-args...] -- [rubocop-args...]
@@ -37,7 +37,7 @@ if diff_args.index('--help') || diff_args.index('-h')
 
     Options:
         -h       Print this message (Don't use --help)
-  EOF
+  DOC
   exit
 end
 
@@ -45,9 +45,9 @@ diff_command = "git diff --name-only #{diff_args.join(' ')}"
 puts "running: #{diff_command}"
 files = `#{diff_command} 2> /dev/null`.split("\n")
 
-fail('fatal: git command failed') unless $?.success?
+fail('fatal: git command failed') unless $CHILD_STATUS.success?
 
-existing_files = files.select { |f| File.exists?(f) }
+existing_files = files.select { |f| File.exist?(f) }
 if files.empty?
   puts 'Git returned zero files. Aborting.'
   exit
@@ -65,4 +65,4 @@ end
 rubocop_command = "bundle exec rubocop --force-exclusion #{(rubocop_args + existing_files).join(' ')}"
 puts "running: #{rubocop_command}"
 system(rubocop_command)
-exit $?.exitstatus
+exit $CHILD_STATUS.exitstatus
